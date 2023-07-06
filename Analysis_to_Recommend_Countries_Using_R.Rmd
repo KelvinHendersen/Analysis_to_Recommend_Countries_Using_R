@@ -1,0 +1,51 @@
+---
+title: "Analysis to Recommend Countries using R"
+author: "Kelvin Hendersen"
+date: "2023-07-02"
+output: html_document
+---
+
+## 1. Business/Project Understanding
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring:
+
+**Objective** To categorize countries using socioeconomic and health factors determine the development of the country as a whole.
+
+**About Organization:** HELP International is an international humanitarian organization committed to combating poverty and provide basic facilities and assistance to people in countries underdeveloped during disasters and natural disasters.
+
+**Problem:** HELP International has raised approx. $10 million. Nowadays, CEO need decide how to use this money strategically and effectively. So the CEO has to take the decision to select the country that needs the most assistance.
+
+## 2. The Data
+### 2.1. Dataset Understanding
+Explanation of feature fields
+
+* **Negara**: Country name
+* **Kematian_anak**: Deaths of children under 5 years of age per 1000 births
+* **Ekspor**: Export of goods and services per capita
+* **Kesehatan**: Total health spending per capita
+* **Impor**: Imports of goods and services per capita
+* **Pendapatan**: Net income per person
+* **Inflasi**: Measurement of the annual growth rate of Total GDP
+* **Harapan_hidup**: The average number of years a newborn would live if current death patterns remained the same
+* **Jumlah_fertiliti**: The number of children that would be born to each woman if the current age fertility rate remained the same
+* **GDPperkapita**: GDP per capita Calculated as Total GDP divided by the total population
+
+The data/file to be processed is named 'DATA_Negara_HELP csv' which consists of:
+
+* 167 rows
+* 10 columns
+
+**import the required libraries**
+```{r **import the required libraries**, echo=TRUE, message=FALSE, warning=FALSE}
+library("tidyverse")
+library("dplyr")
+library("lares")
+library("reshape2")
+library("ggplot2")
+library("ggpubr")
+library("factoextra")
+library("NbClust")
+library("cluster")
+library("skimr")
+```
+
