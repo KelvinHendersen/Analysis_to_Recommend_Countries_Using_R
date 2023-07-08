@@ -1,22 +1,42 @@
 ---
-title: "Analysis to Recommend Countries using R"
+title: "<center>**Analysis to Recommend Countries using R**</center>"
 author: "Kelvin Hendersen"
-date: "2023-07-02"
-output: html_document
+date: "2023-07-07"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
-## 1. Business/Project Understanding
+<style type="text/css">
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring:
+h4.author {
+  font-size: 20px;
+  font-family: "Times New Roman", Times, serif;
+  color: Black;
+  text-align: center;
+}
+h4.date {
+  font-size: 20px;
+  font-family: "Times New Roman", Times, serif;
+  color: Black;
+  text-align: center;
+}
 
+</style>
+
+<br />
+
+## **1. Business/Project Understanding**
 **Objective** To categorize countries using socioeconomic and health factors determine the development of the country as a whole.
 
 **About Organization:** HELP International is an international humanitarian organization committed to combating poverty and provide basic facilities and assistance to people in countries underdeveloped during disasters and natural disasters.
 
 **Problem:** HELP International has raised approx. $10 million. Nowadays, CEO need decide how to use this money strategically and effectively. So the CEO has to take the decision to select the country that needs the most assistance.
 
-## 2. The Data
-### 2.1. Dataset Understanding
+<br />
+
+## **2. The Data**
+### **2.1. Dataset Understanding**
 Explanation of feature fields
 
 * **Negara**: Country name
@@ -35,8 +55,10 @@ The data/file to be processed is named 'DATA_Negara_HELP csv' which consists of:
 * 167 rows
 * 10 columns
 
+<br />
+
 **import the required libraries**
-```{r **import the required libraries**, echo=TRUE, message=FALSE, warning=FALSE}
+```{r import the required libraries, echo=TRUE, message=FALSE, warning=FALSE}
 library("tidyverse")
 library("dplyr")
 library("lares")
@@ -49,3 +71,546 @@ library("cluster")
 library("skimr")
 ```
 
+<br />
+
+**Read Data**
+```{r read data, echo=TRUE, message=FALSE, warning=FALSE}
+df <- read_csv("Data_Negara_HELP.csv")
+```
+
+<br />
+
+**Displays the top 5 data**
+```{r displays the top 5 data, echo=TRUE, message=FALSE, warning=FALSE}
+head(df,5) #Displays the top 5 data
+```
+<br />
+
+### **2.2. EDA (Exploratory Data Analysis) - Part 1**
+(1)In statistics, exploratory data analysis (EDA) is an approach of analyzing data sets to summarize their main characteristics, often using statistical graphics and other data visualization methods.
+
+Footnote: 1. [link](https://en.wikipedia.org/wiki/Exploratory_data_analysis)
+
+#### **2.2.1. Find Missing Value**
+```{r find missing value, message=FALSE, warning=FALSE}
+sum(is.null(df))
+```
+Because none of the datasets above have missing values such as "NaN", "NULL", etc., we proceed to the next stage, which is to perform a Multivariate Analysis Dataset to find correlations for each feature/column of data.
+
+<br />
+
+#### **2.2.2. Multivariate analysis**
+Multivariate analysis is used to analyze more than 2 variables at the same time, the resulting trends can be naturally multidimensional, with this analysis it will help us understand which data has complex trends in combinations of attributes.
+
+Creates a new dataframe for the backup, then retrieves the columns containing only numeric values
+```{r df_copy backup and then get just numeric value, message=FALSE, warning=FALSE}
+df_copy <- data.frame()
+df_copy <- df
+df_copy = subset(df_copy, select = -c(Negara))
+```
+
+<br />
+
+Look for correlation relationships between columns with the cor() function to display matrices
+```{r Look for correlation relationships for between each variable/features, echo=TRUE, message=FALSE, warning=FALSE}
+cor(df_copy)
+```
+
+Since it is difficult to see these numbers in the table by default, we will define a function to take the best 5 strong positive correlation numbers and display them onto a bar graph (See Section 2.3).
+
+<br />
+
+### **2.3. Feature Selection**
+
+```{r multivariate analysis (multi variable features) with bar graph correlation, echo=TRUE, message=FALSE, warning=FALSE}
+corr_cross(df_copy, top=5, rm.na=TRUE)
+```
+
+From the graph above there are 2 groups namely blue bars representing positive correlations and red for negative correlations (Correlation coefficient start from range -1 to 1). Of course we will take the positive correlation/top blue bar (Pendapatan & GDPperkapita) with a correlation value of +0.896.
+
+But we will see how the relationships between columns are related by using a Heatmap plot.
+Code source reference:
+
+1. [link](https://www.geeksforgeeks.org/how-to-create-correlation-heatmap-in-r/)
+2. [link](http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization)
+
+```{r make heatmap plot, echo=TRUE, message=FALSE, warning=FALSE}
+#Round off to 2 decimal places
+corr_mat <- round(cor(df_copy),2)
+
+# Get lower triangle of the correlation matrix
+get_lower_tri<-function(corr_mat){
+  corr_mat[upper.tri(corr_mat)] <- NA
+  return(corr_mat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(corr_mat){
+  corr_mat[lower.tri(corr_mat)]<- NA
+  return(corr_mat)
+}
+
+upper_tri <- get_upper_tri(corr_mat)
+
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "#FFFFFF")+
+  scale_fill_gradient2(low = "#F1FFFF", mid = "#BEF7FF", high = "#0F12E4", midpoint = 0, limit = c(-1,1), space = "Lab", name="Pearson\nCorrelation") +
+  geom_text(aes(label = melted_cormat$"value"))+
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1))+
+  coord_fixed()
+```
+
+On the heatmap, we can see the darkest color (most dark blue). For positive relations there are 3 strongest candidates, namely:
+
+1. Pendapatan with GDPpercapita with a value of 0.9
+2. Kematian_anak with Jumlah_fertiliti with a value of 0.85
+3. Ekspor with Impor with a value of 0.74
+
+Of course we take the 2 variables with the highest positive correlation, namely Pendapatan with GDPperkapita. This can be proven by the plot as follows.
+
+```{r scatter plot correlation prove, echo=TRUE, message=FALSE, warning=FALSE}
+plot1 <- ggplot(data=df_copy)+
+  geom_smooth(mapping=aes(x=Pendapatan,y=GDPperkapita),method="loess")+
+  geom_jitter(mapping=aes(x=Pendapatan,y=GDPperkapita),color="blue")+ 
+  labs(title="Pendapatan vs GDPperkapita")
+
+plot2 <- ggplot(data=df_copy)+
+  geom_smooth(mapping=aes(x=Kematian_anak,y=Jumlah_fertiliti),method="loess")+
+  geom_jitter(mapping=aes(x=Kematian_anak,y=Jumlah_fertiliti),color="red")+
+  labs(title="Kematian_anak vs Jumlah_fertiliti")
+
+plot3 <- ggplot(data=df_copy)+
+  geom_smooth(mapping=aes(x=Ekspor,y=Impor),method="loess")+
+  geom_jitter(mapping=aes(x=Ekspor,y=Impor),color="green")+
+  labs(title="Ekspor vs Impor")
+
+ggarrange(plot1, plot2, plot3, ncol = 3, nrow = 1)
+```
+
+In the graph above it can be seen that the distribution of the blue data points is closer to the correlation line than the red and green dots which tend to spread away from the correlation line. This proves that there is a strong positive correlation between Pendapatan and GDPperkapita.
+
+After we decided to link the correlation of Pendapatan with GDPperkapita. The next step is to look for outliers to be analyzed.
+
+<br />
+
+### **2.4. Data Cleaning**
+Generally, raw data contains outlier data, of course in this case we cannot use the data for analysis because it still contains outlier data. For that we need to examine the data between the lower limit (Q1), the middle / median (Q2) and the upper limit (Q3). Then examine outlier data that is outside Q1 and Q3
+
+**Interquartile Range** is the percentile difference between the upper (Q3) and lower (Q1) quartiles
+
+`IQR = Q3-Q1`
+
+or in other words, IQR is the limits within the range of dividing the data into 4 equal parts marked with limits/symbols Q1, Q2 (median), Q3.
+
+The formula for finding the lower (Q1) and upper (Q3) limits:
+
+`Lower_bound = Q1 - (1.5*IQR)`
+
+`Upper_bound = Q3 + (1.5*IQR)`
+
+<br />
+
+#### **2.4.1. Finding Outlier**
+Outlier display of 'Pendapatan' column before analysis (using boxplot)
+
+```{r boxplot Pendapatan, echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data=df_copy)+
+  geom_boxplot(mapping = aes(x=Pendapatan), fill='blue')
+```
+
+In the boxplot above, it can be seen that the 'Pendapatan' column has outliers that are beyond the upper quartile 3 (this can be seen from the Pendapatan range bounded by the line as the Inter Quartille Range (IQR))
+
+<br />
+
+Outlier display of column 'GDPperkapita' before analysis (using boxplot)
+
+```{r boxplot GDPperkapita, echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data=df_copy)+
+  geom_boxplot(mapping = aes(x=GDPperkapita), fill="blue")
+```
+
+In the boxplot above, it can be seen that the column 'GDPperkapita' also has outliers that are beyond the upper quartile 3 (this can be seen from the income range bounded by the line as the Inter Quartille Range (IQR))
+
+<br />
+
+We will now look at the individual outliers in the 'Pendapatan' and 'GDPperkapita' columns.
+
+<br />
+
+Find outliers for the 'Pendapatan' column using the zscore:
+
+```{r zscore outlier Pendapatan column, echo=TRUE, message=FALSE, warning=FALSE}
+zscore_pendapatan <- (df_copy$"Pendapatan"-mean(df_copy$"Pendapatan"))/sd(df_copy$"Pendapatan")
+zscore_gdp <- (df_copy$"GDPperkapita"-mean(df_copy$"GDPperkapita"))/sd(df_copy$"GDPperkapita")
+
+variabel1 <- data.frame(df)
+variabel1 <- mutate(variabel1, zscore_pendapatan = zscore_pendapatan, zscore_gdp = zscore_gdp)
+
+hasilzscorependapatan <- variabel1 %>% filter(zscore_pendapatan > 3)
+hasilzscorependapatan
+```
+
+The above shows that there are about 4 rows of 'Pendapatan' data whose outlier values are far from the distribution of other data, namely Brunei, Kuwait, Luxembourg, Qatar
+
+<br />
+
+```{r zscore outlier GDPperkapita, echo=TRUE, message=FALSE, warning=FALSE}
+hasilzscoregdp <- variabel1 %>% filter(zscore_gdp > 3)
+hasilzscoregdp
+```
+
+The above shows that there are about 4 rows of 'GDP per capita' data whose outlier values are far from the distribution of other data, namely Luxembourg, Norway, Qatar, Switzerland
+
+<br />
+
+#### **2.4.2. Handling Outlier & Missing Value**
+Here we will take values that are within the range of the IQR, remove outlier, and then drop na value (Code source reference: [link](https://www.geeksforgeeks.org/how-to-remove-outliers-from-multiple-columns-in-r-dataframe/))
+
+```{r find IQR, echo=TRUE, message=FALSE, warning=FALSE}
+df_copy <- data.frame(df)
+
+# create detect outlier function
+detect_outlier <- function(i) {
+  Q1 <- quantile(i, probs=.25) # calculate first quantile
+  Q3 <- quantile(i, probs=.75) # calculate third quantile
+  IQR <- Q3-Q1 # calculate inter quartile range
+  (i<Q1-(IQR*1.5)) | (i>Q3+(IQR*1.5)) # return TRUE or FALSE (Find & Get Outlier)
+}
+
+# create remove outlier function
+remove_outlier <- function(dataframe, columns=names(dataframe)) {
+  for (col in columns) { # for loop in columns vector
+    dataframe <- dataframe[!detect_outlier(dataframe[[col]]), ] # "!" To take apart the outliers
+  }
+  return(dataframe)
+}
+
+df_copy <- remove_outlier(df_copy, c('Pendapatan', 'GDPperkapita'))
+df_copy <- na.omit(df_copy)
+```
+
+<br />
+
+Now we check whether the df_copy variable that has dropped the Outlier still has a missing value or not
+
+```{r check is still contains null value/not, echo=FALSE, message=FALSE, warning=FALSE}
+sum(is.null(df_copy$"Pendapatan"))
+sum(is.null(df_copy$"GDPperkapita"))
+```
+<br />
+
+Now we check again whether the Outliers still exist or not after going through the processes above. But before that, we must first know the upper & lower limits on the respective 'Pendapatan' & 'GDPperkapita' columns.
+
+```{r check lowerbound&upperbound Pendapatan, echo=TRUE, message=FALSE, warning=FALSE}
+q1_pendapatan <- quantile(df_copy$"Pendapatan", .25)
+q3_pendapatan <- quantile(df_copy$"Pendapatan", .75)
+
+q1_gdp <- quantile(df_copy$"GDPperkapita", .25)
+q3_gdp <- quantile(df_copy$"GDPperkapita", .75)
+
+iqr_pendapatan <- q3_pendapatan - q1_pendapatan
+iqr_gdp <- q3_gdp - q1_gdp
+
+lowerboundpendapatan = q1_pendapatan-(1.5*iqr_pendapatan)
+upperboundpendapatan = q3_pendapatan+(1.5*iqr_pendapatan)
+
+lowerboundgdp = q1_gdp-(1.5*iqr_gdp)
+upperboundgdp = q3_gdp+(1.5*iqr_gdp)
+cat("Lower bound for Pendapatan: ",lowerboundpendapatan,"\n","Upper bound for Pendapatan: ",upperboundpendapatan,"\n","Lower bound GDPperkapita: ",lowerboundgdp,"\n","Upper bound for GDPperkapita: ",upperboundgdp)
+```
+<br />
+
+After we know the upper and lower limits of each column, now we will see if there are any outliers outside the upper & lower limits
+
+```{r prove there is not contains outlier, echo=TRUE, message=FALSE, warning=FALSE}
+bukti <- df_copy %>% filter(Pendapatan < lowerboundpendapatan) %>% 
+  filter(Pendapatan > upperboundpendapatan) %>% 
+  filter(GDPperkapita < lowerboundgdp) %>% 
+  filter(GDPperkapita > upperboundgdp)
+
+bukti
+```
+<br />
+
+Now we check again the outliers in the 'Pendapatan' column with a boxplot plot (after the data has been analyzed & processed)
+
+```{r prove with boxplot there is not contains outlier, echo=TRUE, message=FALSE, warning=FALSE}
+plot4 <- ggplot(data=df_copy)+
+  geom_boxplot(mapping = aes(x=Pendapatan), fill='blue')
+
+plot5 <- ggplot(data=df_copy)+
+  geom_boxplot(mapping = aes(x=GDPperkapita), fill='blue')
+
+ggarrange(plot4, plot5, ncol = 2, nrow = 1)
+```
+
+If you pay attention, there are still data that are still considered Outliers in the 'Pendapatan' and 'GDPperkapita' columns due to differences in the previous quartile data so that the data is considered Outilers. This is commonplace sometimes.
+
+<br />
+
+### **2.5. EDA - Part 2**
+#### **2.5.1.Univariate Analysis**
+Univariate Analysis is a technique for understanding and exploring data. The prefix 'Uni' means 'one', so univariate analysis is a single feature data analysis.
+
+Now we will try to analyze the features one by one using a histogram plot.
+
+```{r univariate analysis (1 variable/feature) with histogram, echo=TRUE, message=FALSE, warning=FALSE}
+plot6 <- ggplot(df_copy, mapping=aes(x=Pendapatan))+
+  geom_histogram()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(title="Pendapatan", x="Pendapatan",y="Frekuensi")
+
+plot7 <- ggplot(df_copy, mapping=aes(x=GDPperkapita))+
+  geom_histogram()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(title="GDPperkapita", x="GDPperkapita",y="Frekuensi")
+
+ggarrange(plot6, plot7, ncol = 2, nrow = 1)
+```
+
+We need to know the income formula first:
+
+`Income = GDP/population`
+
+Information obtained from the information above:
+
+1. Between Pendapatan & GDPperkapita is directly proportional
+2. When Pendapatan decreases, it is automatically influenced by GDP which also decreases
+3. The majority of individuals/individuals on average Pendapatan is in the range <= 10000 to >= 20000
+3. Likewise with the majority of GDPperkapita on average in countries in the range 0 < x < 10000
+
+<br />
+
+#### **2.5.2. Bivariate Analysis**
+After we try Univariate, we will also try Bivariate Analysis.
+
+Bivariate analysis is used to analyze 2 variables and find a relationship. Bivariate analysis is also a way to use the correlation coefficient in order to find out whether two variables have a relationship or not.
+
+Now we will analyze using Scatter plots
+
+```{r Bivariate analysis 2 variable with scatterplot, echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data=df_copy)+
+  geom_point(mapping = aes(x=Pendapatan,y=GDPperkapita),color="green")
+```
+
+Information based on the Bivariate Analysis above:
+
+1. Just like Univariate's assumption that the increase in coordinate points/data distribution between Pendapatan & GDP is directly proportional
+2. When Pendapatan rises, GDP also tends to rise
+3. The data distribution points tend to converge between the Pendapatan range of 10,000 and GDP per capita of 5,000
+
+<br />
+
+## **3. Clustering**
+### **3.1. Scale Data**
+The scale feature is used to normalize the distance between data variables between x and y.
+
+If we look at the df_copy, the values between rows are less close together if we want to plot them. For that we will do data scaling.
+
+```{r data scaling, echo=TRUE, message=FALSE, warning=FALSE}
+df_copy_sc <- select(df_copy, "Pendapatan", "GDPperkapita")
+df_copy_sc <- mutate(df_copy_sc, Pendapatan=scale(df_copy$Pendapatan), GDPperkapita=scale(df_copy$GDPperkapita))
+```
+
+<br />
+
+### **3.2. Choose the right number of clusters**
+As the name suggests, determining the value of K is one of the important things to do in the K-Means algorithm. To be able to determine this value we will use four methods of determining the best k value, namely the Elbow Method, Silhouette Method, Gap Statistic Method, and finally the combined function of several clustering methods.
+
+
+**Elbow Method**
+
+
+```{r find clustering with elbow/wcss method, echo=TRUE, message=FALSE, warning=FALSE}
+fviz_nbclust(df_copy_sc, kmeans, method = "wss")+
+  geom_vline(xintercept = 4, linetype = 2)+
+  labs(title="Optimal number of clusters (Elbow)", x="Number of clusters k",y="The Within Sum of Square (Elbow)")+
+  annotate("segment",x=6,xend=4.1,y=90,yend=30,color="blue",size=2,arrow=arrow())+
+  annotate("text", x=8.5, y=100, label="Elbows/Elbows with a stable drop angle & inertial distance between clusters", color="black")
+```
+
+Here we can see the inflection point on the Elbow indicating the number 4.
+
+<br />
+
+**Silhouette Method**
+
+The Silhouette Method uses a coefficient value that is calculated from how close the relationships between objects in a cluster are, and how far a cluster is apart from other clusters. the equation used is:
+
+`Silhouette coefficient = (x-y)/ max(x,y)`
+
+Where x is the distance to other clusters and y is the distance between objects in the same cluster. The optimum K value is obtained from the peak value of the K plot against the Silhouette Coefficient.
+
+```{r find clustering with Silhouette method, echo=TRUE, message=FALSE, warning=FALSE}
+fviz_nbclust(df_copy_sc, kmeans, method = "silhouette")+
+  labs(title="Optimal number of clusters (Silhouette)") 
+```
+
+From these results we can see that the peak value with Silhouette Method is at a value of K = 2
+
+<br />
+
+**Gap Statistic**
+(2)Gap Statistics is a method to choose the number of K, where the biggest jump in within-cluster distance occurred, based on the overall behavior of uniformly drawn samples.
+
+Footnote: 2. [link](https://towardsdatascience.com/k-means-clustering-and-the-gap-statistics-4c5d414acd29)
+
+```{r find clustering with Gap Statistics Method, echo=TRUE, message=FALSE, warning=FALSE}
+fviz_nbclust(df_copy_sc, kmeans, method = "gap_stat",nboot=50)+
+  labs(title="Optimal number of clusters (Gap Statistic)")
+```
+
+We can see in the Gap Statistics method, the peak point/optimum cluster value is 5.
+
+<br />
+
+**Methods with combined functions**
+
+```{r A function to use combined function methods to avoid errors, message=FALSE, warning=FALSE, include=FALSE}
+fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
+                          "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
+                          barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
+                          print.summary = TRUE, ...) 
+{
+  set.seed(123)
+  if (k.max < 2) 
+    stop("k.max must bet > = 2")
+  method = match.arg(method)
+  if (!inherits(x, c("data.frame", "matrix")) & !("Best.nc" %in% 
+                                                  names(x))) 
+    stop("x should be an object of class matrix/data.frame or ", 
+         "an object created by the function NbClust() [NbClust package].")
+  if (inherits(x, "list") & "Best.nc" %in% names(x)) {
+    best_nc <- x$Best.nc
+    if (any(class(best_nc) == "numeric") ) 
+      print(best_nc)
+    else if (any(class(best_nc) == "matrix") )
+      .viz_NbClust(x, print.summary, barfill, barcolor)
+  }
+  else if (is.null(FUNcluster)) 
+    stop("The argument FUNcluster is required. ", "Possible values are kmeans, pam, hcut, clara, ...")
+  else if (!is.function(FUNcluster)) {
+    stop("The argument FUNcluster should be a function. ", 
+         "Check if you're not overriding the specified function name somewhere.")
+  }
+  else if (method %in% c("silhouette", "wss")) {
+    if (is.data.frame(x)) 
+      x <- as.matrix(x)
+    if (is.null(diss)) 
+      diss <- stats::dist(x)
+    v <- rep(0, k.max)
+    if (method == "silhouette") {
+      for (i in 2:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_ave_sil_width(diss, clust$cluster)
+      }
+    }
+    else if (method == "wss") {
+      for (i in 1:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_withinSS(diss, clust$cluster)
+      }
+    }
+    df <- data.frame(clusters = as.factor(1:k.max), y = v, 
+                     stringsAsFactors = TRUE)
+    ylab <- "Total Within Sum of Square"
+    if (method == "silhouette") 
+      ylab <- "Average silhouette width"
+    p <- ggpubr::ggline(df, x = "clusters", y = "y", group = 1, 
+                        color = linecolor, ylab = ylab, xlab = "Number of clusters k", 
+                        main = "Optimal number of clusters")
+    if (method == "silhouette") 
+      p <- p + geom_vline(xintercept = which.max(v), linetype = 2, 
+                          color = linecolor)
+    return(p)
+  }
+  else if (method == "gap_stat") {
+    extra_args <- list(...)
+    gap_stat <- cluster::clusGap(x, FUNcluster, K.max = k.max, 
+                                 B = nboot, verbose = verbose, ...)
+    if (!is.null(extra_args$maxSE)) 
+      maxSE <- extra_args$maxSE
+    else maxSE <- list(method = "firstSEmax", SE.factor = 1)
+    p <- fviz_gap_stat(gap_stat, linecolor = linecolor, 
+                       maxSE = maxSE)
+    return(p)
+  }
+}
+
+.viz_NbClust <- function (x, print.summary = TRUE, barfill = "steelblue", 
+                          barcolor = "steelblue") 
+{
+  best_nc <- x$Best.nc
+  if (any(class(best_nc) == "numeric") )
+    print(best_nc)
+  else if (any(class(best_nc) == "matrix") ) {
+    best_nc <- as.data.frame(t(best_nc), stringsAsFactors = TRUE)
+    best_nc$Number_clusters <- as.factor(best_nc$Number_clusters)
+    if (print.summary) {
+      ss <- summary(best_nc$Number_clusters)
+      cat("Among all indices: \n===================\n")
+      for (i in 1:length(ss)) {
+        cat("*", ss[i], "proposed ", names(ss)[i], 
+            "as the best number of clusters\n")
+      }
+      cat("\nConclusion\n=========================\n")
+      cat("* According to the majority rule, the best number of clusters is ", 
+          names(which.max(ss)), ".\n\n")
+    }
+    df <- data.frame(Number_clusters = names(ss), freq = ss, 
+                     stringsAsFactors = TRUE)
+    p <- ggpubr::ggbarplot(df, x = "Number_clusters", 
+                           y = "freq", fill = barfill, color = barcolor) + 
+      labs(x = "Number of clusters k", y = "Frequency among all indices", 
+           title = paste0("Optimal number of clusters - k = ", 
+                          names(which.max(ss))))
+    return(p)
+  }
+}
+# assign them to the factoextra namespace
+environment(fviz_nbclust) <- asNamespace("factoextra")
+assignInNamespace("fviz_nbclust",fviz_nbclust,"factoextra")
+environment(.viz_NbClust) <- asNamespace("factoextra")
+assignInNamespace(".viz_NbClust",.viz_NbClust,"factoextra")
+```
+
+```{r find clustering with combined methods & functions, echo=TRUE, message=FALSE, warning=FALSE}
+nb <- NbClust(df_copy_sc, distance = "euclidean", min.nc = 2, max.nc = 10, method = "kmeans", index="all")
+fviz_nbclust(nb)+ labs(x="Number of clusters k",y="Sum of methods")
+```
+
+**Among all indices from above graph:**
+
+* 7 proposed 2 as the best number of clusters 
+* 6 proposed 3 as the best number of clusters 
+* 2 proposed 5 as the best number of clusters 
+* 4 proposed 6 as the best number of clusters 
+* 1 proposed 8 as the best number of clusters 
+* 3 proposed 9 as the best number of clusters 
+* 1 proposed 10 as the best number of clusters 
+
+**Conclusion:** According to the majority rule, the best number of clusters is  2
+
+From the clustering charts above we will use the recommended number of clusters from the combined function method including the Silhouette Method where k=2
+
+<br />
+
+**Clustering with KMeans (with combined functions, k=2)**
+
+```{r make clustering with k is 2 combined functions method, echo=TRUE, message=FALSE, warning=FALSE}
+km <- kmeans(df_copy_sc, centers = 2, nstart = 25)
+fviz_cluster(km, data = df_copy_sc)
+```
+
+Insight gained with Combined Functions, k=2:
+
+* There are 2 clusters/groupings based on color, namely the red cluster and the blue cluster
+* The blue cluster is countries with low and directly proportional Pendapatan and GDPperkapita
+* The red cluster is countries with middle to high Pendapatan and GDPperkapita
+* Our task is to find out which countries are included in the blue cluster with low Pendapatan and GDPperkapita
+
+<br />
+
+## **4. Recommendation**
