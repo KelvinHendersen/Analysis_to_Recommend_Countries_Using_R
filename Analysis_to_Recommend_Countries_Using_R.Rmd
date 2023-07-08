@@ -91,6 +91,8 @@ head(df,5) #Displays the top 5 data
 
 Footnote: 1. [link](https://en.wikipedia.org/wiki/Exploratory_data_analysis)
 
+<br />
+
 #### **2.2.1. Find Missing Value**
 ```{r find missing value, message=FALSE, warning=FALSE}
 sum(is.null(df))
@@ -614,3 +616,98 @@ Insight gained with Combined Functions, k=2:
 <br />
 
 ## **4. Recommendation**
+```{r rekomendasi dengan contoh gambar, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("C:/Users/user/Downloads/Cluster.png")
+```
+
+Because we use the Combined Functions where K=2. So we follow according to the insight that we have to look for which countries are included in the blue cluster where Pendapatan and GDPperkapita are low.
+
+<br />
+
+**Here we will use 2 ways to take recommendations**
+<br />
+1. The first way is to calculate the average from a dataset that is clean of outliers and then choose which country is less than that average
+2. The second way is to find out which countries are based on the label kmeans on the cluster
+
+<br />
+
+### **4.1. Recommendation - Method 1**
+
+The steps used to find out which countries are eligible for assistance from HELP International:
+
+1. Prepare a dataset that is clean from Missing Value and Outliers.
+2. Find the average/mean of each column
+3. Find which countries are less than the average Pendapatan and GDPperkapita
+4. Sort the value of Pendapatan and GDPperkapita from smallest to largest as a priority
+5. Take the top 5 countries with the smallest Pendapatan and GDPperkapita
+
+<br />
+
+```{r prove method 1, echo=TRUE, message=FALSE, warning=FALSE}
+df_copy <- cbind(df_copy, "cluster" = km$"cluster")
+
+cara1 <- df_copy %>% drop_na() %>% 
+  filter(Pendapatan<mean(Pendapatan) & GDPperkapita<mean(GDPperkapita)) %>% 
+  arrange(Pendapatan,GDPperkapita)
+
+head(cara1,5)
+```
+
+From the results above, recommendations for countries that are eligible for assistance can be given (in order from top to bottom as a priority scale):
+
+1. Congo, Dem. Rep.
+2. Liberia
+3. Burundi
+4. Niger
+5. Central African Republic
+
+<br />
+
+### **4.2. Recommendation - Method 2**
+Now we will try the Combined functions method based on kmeans cluster label where our main focus is cluster = 2 which is a blue cluster
+
+```{r prove method 2, echo=TRUE, message=FALSE, warning=FALSE}
+cara2 <- df_copy %>% drop_na() %>% 
+  filter(cluster==2 & Pendapatan<mean(Pendapatan) & GDPperkapita<mean(GDPperkapita)) %>% 
+  arrange(Pendapatan,GDPperkapita)
+
+head(cara2,5)
+```
+
+From the results above, recommendations for countries that are eligible for assistance can be given (in order from top to bottom as a priority scale):
+
+1. Congo, Dem. Rep.
+2. Liberia
+3. Burundi
+4. Niger
+5. Central African Republic
+
+<br />
+
+Following are the results of the Bar plot for each blue cluster according to Pendapatan and GDPperkapita
+
+```{r blue cluster based on Pendapatan and GDPperkapita, echo=TRUE, message=FALSE, warning=FALSE}
+plot11 <- ggplot(head(cara2,10), mapping=aes(x=reorder(Negara,Pendapatan), y=Pendapatan))+
+  geom_bar(stat='identity',fill="blue")+ 
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(title="Pendapatan",x="Negara",y="Pendapatan")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2))
+
+plot12 <- ggplot(head(cara2,10), mapping=aes(x=reorder(Negara,GDPperkapita), y=GDPperkapita))+
+  geom_bar(stat='identity',fill="blue")+ 
+  labs(title="GDPperkapita",x="Negara",y="GDPperkapita")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2))
+  
+ggarrange(plot11, plot12, ncol = 2, nrow = 1)
+```
+<br />
+
+## **5. Conclusion**
+Both Method 1 and 2 recommendations produce the same output. So in conclusion we can recommend the top 5 countries as priorities to get grants and notify the CEO of HELP International, namely:
+
+1. Congo, Dem. Rep.
+2. Liberia
+3. Burundi
+4. Niger
+5. Central African Republic
