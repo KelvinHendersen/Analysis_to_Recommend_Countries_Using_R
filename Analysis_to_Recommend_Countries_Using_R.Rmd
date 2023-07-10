@@ -427,13 +427,13 @@ As the name suggests, determining the value of K is one of the important things 
 
 ```{r find clustering with elbow/wcss method, echo=TRUE, message=FALSE, warning=FALSE}
 fviz_nbclust(df_copy_sc, kmeans, method = "wss")+
-  geom_vline(xintercept = 4, linetype = 2)+
+  geom_vline(xintercept = 2, linetype = 2)+
   labs(title="Optimal number of clusters (Elbow)", x="Number of clusters k",y="The Within Sum of Square (Elbow)")+
-  annotate("segment",x=6,xend=4.1,y=90,yend=30,color="blue",size=2,arrow=arrow())+
-  annotate("text", x=8.5, y=100, label="Elbows/Elbows with a stable drop angle & inertial distance between clusters", color="black")
+  annotate("segment",x=4,xend=2.2, y=180,yend=100,color="blue",size=2,arrow=arrow())+
+  annotate("text", x=4, y=200, label="The elbow with the sharpest drop", color="black")
 ```
 
-Here we can see the inflection point on the Elbow indicating the number 4.
+Here we can see the inflection point on the Elbow indicating the number 2.
 
 <br />
 
@@ -471,6 +471,7 @@ We can see in the Gap Statistics method, the peak point/optimum cluster value is
 **Methods with combined functions**
 
 ```{r A function to use combined function methods to avoid errors, message=FALSE, warning=FALSE, include=FALSE}
+#Source coding: [link](https://stackoverflow.com/questions/72075707/rstudio-error-with-the-fviz-nbclust-function)
 fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
                           "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
                           barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
@@ -578,7 +579,7 @@ environment(.viz_NbClust) <- asNamespace("factoextra")
 assignInNamespace(".viz_NbClust",.viz_NbClust,"factoextra")
 ```
 
-```{r find clustering with combined methods & functions, echo=TRUE, message=FALSE, warning=FALSE}
+```{r find clustering with combined methods & functions, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
 nb <- NbClust(df_copy_sc, distance = "euclidean", min.nc = 2, max.nc = 10, method = "kmeans", index="all")
 fviz_nbclust(nb)+ labs(x="Number of clusters k",y="Sum of methods")
 ```
@@ -595,7 +596,7 @@ fviz_nbclust(nb)+ labs(x="Number of clusters k",y="Sum of methods")
 
 **Conclusion:** According to the majority rule, the best number of clusters is  2
 
-From the clustering charts above we will use the recommended number of clusters from the combined function method including the Silhouette Method where k=2
+From the clustering charts above we will use the recommended number of clusters from the combined function method including Elbow and Silhouette Method where k=2
 
 <br />
 
@@ -625,7 +626,9 @@ Because we use the Combined Functions where K=2. So we follow according to the i
 <br />
 
 **Here we will use 2 ways to take recommendations**
+
 <br />
+
 1. The first way is to calculate the average from a dataset that is clean of outliers and then choose which country is less than that average
 2. The second way is to find out which countries are based on the label kmeans on the cluster
 
